@@ -1,0 +1,10 @@
+{
+  "name": "com.ilep.unityutils",
+  "version": "1.0.0",
+  "description": "Ilep's unity utilities for new project",
+  "displayName": "Ilep Unity Utils",
+  "unity": "2020.3",
+  "dependencies": {
+    "com.unity.textmeshpro": "3.0.6"
+  }
+}
