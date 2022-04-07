@@ -13,20 +13,6 @@ public static class CustomInput
 		MouseScroll
 	}
 
-	public enum ControlName
-	{
-		Console,
-		Up,
-		Down,
-		Left,
-		Right,
-		Jump,
-		Fire1,
-		Fire2,
-		SwitchWeapon1,
-		SwitchWeapon2
-	}
-
 	public class Control
 	{
 		public ControlMethod controlMethod;
@@ -59,53 +45,22 @@ public static class CustomInput
 		}
 	}
 
+	public static int[] horizontal;
+	public static int[] vertical;
 	public static float mouseSensitivity = 1f;
-	public static Dictionary<ControlName, Control[]> controlDict;
-	private static readonly (Control, Control)[] defaultControls = new (Control, Control)[]
-	{
-		 // console
-		(new Control    { controlMethod = ControlMethod.Key, keyCode = KeyCode.Backslash },
-		new Control     { controlMethod = ControlMethod.Key, keyCode = KeyCode.None }),
-		// up/forward
-		(new Control    { controlMethod = ControlMethod.Key, keyCode = KeyCode.W },
-		new Control     { controlMethod = ControlMethod.Key, keyCode = KeyCode.None }),
-		// down/back
-		(new Control    { controlMethod = ControlMethod.Key, keyCode = KeyCode.S },
-		new Control     { controlMethod = ControlMethod.Key, keyCode = KeyCode.None }),
-		// left
-		(new Control    { controlMethod = ControlMethod.Key, keyCode = KeyCode.A },
-		new Control     { controlMethod = ControlMethod.Key, keyCode = KeyCode.None }),
-		// right
-		(new Control    { controlMethod = ControlMethod.Key, keyCode = KeyCode.D },
-		new Control     { controlMethod = ControlMethod.Key, keyCode = KeyCode.None }),
-		// jump
-		(new Control    { controlMethod = ControlMethod.Key, keyCode = KeyCode.Space },
-		new Control     { controlMethod = ControlMethod.Key, keyCode = KeyCode.None }),
-		// fire1
-		(new Control    { controlMethod = ControlMethod.Key, keyCode = KeyCode.Mouse0 },
-		new Control     { controlMethod = ControlMethod.Key, keyCode = KeyCode.None }),
-		// fire2
-		(new Control    { controlMethod = ControlMethod.Key, keyCode = KeyCode.Mouse1 },
-		new Control     { controlMethod = ControlMethod.Key, keyCode = KeyCode.None }),
-		// switch weapon 1
-		(new Control    { controlMethod = ControlMethod.MouseScroll, mouseScrollDir = 1 },
-		new Control     { controlMethod = ControlMethod.Key, keyCode = KeyCode.None }),
-		// switch weapon 2
-		(new Control    { controlMethod = ControlMethod.MouseScroll, mouseScrollDir = -1 },
-		new Control     { controlMethod = ControlMethod.Key, keyCode = KeyCode.None }),
-	};
+	public static Dictionary<int, Control[]> controlDict;
 
 	/// <summary>
 	/// True while button is held down
 	/// </summary>
-	public static bool GetButtonHeld(ControlName controlName)
+	public static bool GetButtonHeld(int control)
 	{
 		for (int i = 0; i < 2; ++i)
 		{
-			switch (controlDict[controlName][i].controlMethod)
+			switch (controlDict[control][i].controlMethod)
 			{
 				case ControlMethod.Key:
-					if (Input.GetKey(controlDict[controlName][i].keyCode))
+					if (Input.GetKey(controlDict[control][i].keyCode))
 						return true;
 					break;
 				case ControlMethod.MouseScroll:
@@ -119,18 +74,18 @@ public static class CustomInput
 	/// <summary>
 	/// True on the first frame a button is pressed
 	/// </summary>
-	public static bool GetButtonDown(ControlName controlName)
+	public static bool GetButtonDown(int control)
 	{
 		for (int i = 0; i < 2; ++i)
 		{
-			switch (controlDict[controlName][i].controlMethod)
+			switch (controlDict[control][i].controlMethod)
 			{
 				case ControlMethod.Key:
-					if (Input.GetKeyDown(controlDict[controlName][i].keyCode))
+					if (Input.GetKeyDown(controlDict[control][i].keyCode))
 						return true;
 					break;
 				case ControlMethod.MouseScroll:
-					if (Input.mouseScrollDelta.y == controlDict[controlName][i].mouseScrollDir)
+					if (Input.mouseScrollDelta.y == controlDict[control][i].mouseScrollDir)
 						return true;
 					break;
 			}
@@ -141,14 +96,14 @@ public static class CustomInput
 	/// <summary>
 	/// True on the first frame a button is released
 	/// </summary>
-	public static bool GetButtonUp(ControlName controlName)
+	public static bool GetButtonUp(int control)
 	{
 		for (int i = 0; i < 2; ++i)
 		{
-			switch (controlDict[controlName][i].controlMethod)
+			switch (controlDict[control][i].controlMethod)
 			{
 				case ControlMethod.Key:
-					if (Input.GetKeyDown(controlDict[controlName][i].keyCode))
+					if (Input.GetKeyDown(controlDict[control][i].keyCode))
 						return true;
 					break;
 				case ControlMethod.MouseScroll:
@@ -162,36 +117,35 @@ public static class CustomInput
 	public static float GetHorizontal()
 	{
 		float axis = 0f;
-		if (GetButtonHeld(ControlName.Right))
-			axis++;
-		if (GetButtonHeld(ControlName.Left))
+		if (GetButtonHeld(horizontal[0]))
 			axis--;
+		if (GetButtonHeld(horizontal[1]))
+			axis++;
 		return axis;
 	}
 
 	public static float GetVertical()
 	{
 		float axis = 0f;
-		if (GetButtonHeld(ControlName.Up))
-			axis++;
-		if (GetButtonHeld(ControlName.Down))
+		if (GetButtonHeld(vertical[0]))
 			axis--;
+		if (GetButtonHeld(vertical[1]))
+			axis++;
 		return axis;
 	}
 
-	public static void SetDefaultKeys()
+	public static void SetControls(Dictionary<int, (Control, Control)> controls)
 	{
-		controlDict = new Dictionary<ControlName, Control[]>();
-		int buttonNameMax = Enum.GetValues(typeof(ControlName)).Cast<int>().Max() + 1;
-		for (int i = 0; i < buttonNameMax; ++i)
-			controlDict.Add((ControlName)i, new Control[] { defaultControls[i].Item1, defaultControls[i].Item2 });
+		controlDict = new Dictionary<int, Control[]>();
+		foreach (KeyValuePair<int, (Control, Control)> entry in controls)
+			controlDict.Add(entry.Key, new Control[] { entry.Value.Item1, entry.Value.Item2 });
 		InputChanged?.Invoke();
 	}
 
-	public static void SetControl(ControlName button, Control control, bool isAlt)
+	public static void SetControl(int controlNumber, Control control, bool isAlt)
 	{
 		// Find if the control is already in use somewhere else
-		foreach (KeyValuePair<ControlName, Control[]> entry in controlDict)
+		foreach (KeyValuePair<int, Control[]> entry in controlDict)
 		{
 			for (int i = 0; i < 2; ++i)
 			{
@@ -204,15 +158,15 @@ public static class CustomInput
 		}
 		if (isAlt)
 		{
-			controlDict[button][1].controlMethod = control.controlMethod;
-			controlDict[button][1].keyCode = control.keyCode;
-			controlDict[button][1].mouseScrollDir = control.mouseScrollDir;
+			controlDict[controlNumber][1].controlMethod = control.controlMethod;
+			controlDict[controlNumber][1].keyCode = control.keyCode;
+			controlDict[controlNumber][1].mouseScrollDir = control.mouseScrollDir;
 		}
 		else
 		{
-			controlDict[button][0].controlMethod = control.controlMethod;
-			controlDict[button][0].keyCode = control.keyCode;
-			controlDict[button][0].mouseScrollDir = control.mouseScrollDir;
+			controlDict[controlNumber][0].controlMethod = control.controlMethod;
+			controlDict[controlNumber][0].keyCode = control.keyCode;
+			controlDict[controlNumber][0].mouseScrollDir = control.mouseScrollDir;
 		}
 		InputChanged?.Invoke();
 	}
@@ -232,13 +186,13 @@ public static class CustomInput
 
 	public static void InitControls(string[] arr)
 	{
-		controlDict = new Dictionary<ControlName, Control[]>();
+		controlDict = new Dictionary<int, Control[]>();
 		for (int i = 0; i < arr.Length; i += 3)
 		{
-			ControlName inputEnum = (ControlName)Enum.Parse(typeof(ControlName), arr[i]);
+			int index = int.Parse(arr[i]);
 			Control primary = Control.FromString(arr[i + 1]);
 			Control alt = Control.FromString(arr[i + 2]);
-			controlDict.Add(inputEnum, new Control[] { primary, alt });
+			controlDict.Add(index, new Control[] { primary, alt });
 		}
 		InputChanged?.Invoke();
 	}
